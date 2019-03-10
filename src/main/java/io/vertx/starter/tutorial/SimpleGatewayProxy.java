@@ -3,9 +3,7 @@ package io.vertx.starter.tutorial;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.ValidationException;
@@ -21,7 +19,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -78,8 +75,6 @@ public class SimpleGatewayProxy extends AbstractVerticle {
 		 * }); } });
 		 */
 	}
-
-	private Map<String, JsonObject> events = new HashMap<>();
 	
 	 private Schema schema;
 
@@ -146,8 +141,14 @@ public class SimpleGatewayProxy extends AbstractVerticle {
 	private void defaultResponse(RoutingContext routingContext, AsyncResult<Message<JsonObject>> responseHandler) {
 
 		if (responseHandler.failed()) {
-			System.out.print("RESPONSE?" + responseHandler.cause().getMessage());
-			routingContext.fail(500);
+			
+			JsonObject jsonERROR = new JsonObject();
+			jsonERROR.put("error" , responseHandler.cause().getMessage());
+			jsonERROR.put("trace" , responseHandler.cause().toString());			
+			routingContext.response().putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+			routingContext.response().end(jsonERROR.encode());
+			
+			
 		} else {
 			final Message<JsonObject> result = responseHandler.result();
 			routingContext.response().putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
@@ -155,9 +156,6 @@ public class SimpleGatewayProxy extends AbstractVerticle {
 		}
 	}
 
-	private void sendError(int statusCode, HttpServerResponse response) {
-		response.setStatusCode(statusCode).end();
-	}
 	
 	private List<String>  validateJSON(String strJSON) throws IOException {
 		
